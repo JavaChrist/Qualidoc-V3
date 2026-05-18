@@ -1,0 +1,13 @@
+node_modules/
+dist/
+release/
+.DS_Store
+*.log
+.vscode/
+.idea/
+.env
+.env.local
+build/
+out/
+electron-builder.yml.local
+puppeteer-cache/

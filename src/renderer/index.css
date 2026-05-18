@@ -1,0 +1,170 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body, #root {
+    height: 100%;
+  }
+  body {
+    font-family: 'Inter', Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #F4F6F8;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #C9D1DC;
+    border-radius: 6px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #9AA5B5;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-unitep-navy/40;
+  }
+  .btn-primary {
+    @apply btn bg-unitep-navy text-white hover:bg-unitep-navy-light;
+  }
+  .btn-secondary {
+    @apply btn bg-white border border-unitep-border text-slate-700 hover:bg-slate-50;
+  }
+  .btn-ghost {
+    @apply btn text-slate-600 hover:bg-slate-100;
+  }
+  .btn-danger {
+    @apply btn bg-unitep-danger text-white hover:bg-red-700;
+  }
+  .btn-warning {
+    @apply btn bg-unitep-step text-white hover:bg-orange-600;
+  }
+  .input {
+    @apply w-full px-3 py-2 border border-unitep-border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-unitep-navy/40 focus:border-unitep-navy disabled:bg-slate-50 disabled:text-slate-500;
+  }
+  .label {
+    @apply block text-xs font-semibold text-slate-700 uppercase tracking-wide mb-1.5;
+  }
+  .card {
+    @apply bg-white rounded-lg border border-unitep-border shadow-unitep;
+  }
+  .badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-medium;
+  }
+
+  /* ─── Page UNITEP rendu A4 ─── */
+  .unitep-page {
+    width: 210mm;
+    min-height: 297mm;
+    background: white;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.12);
+    margin: 0 auto 24px auto;
+    position: relative;
+    font-family: Arial, Helvetica, sans-serif;
+    color: #000;
+    font-size: 10pt;
+    line-height: 1.4;
+    page-break-after: always;
+    box-sizing: border-box;
+    padding: 28mm 20mm 22mm 20mm;
+  }
+  .unitep-page-content {
+    min-height: calc(297mm - 28mm - 22mm);
+  }
+
+  .unitep-h1 {
+    font-size: 12pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin: 14pt 0 8pt 0;
+    color: #000;
+  }
+  .unitep-h2 {
+    font-size: 11pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin: 12pt 0 6pt 0;
+    color: #000;
+  }
+  .unitep-h3 {
+    font-size: 11pt;
+    font-weight: 700;
+    margin: 10pt 0 5pt 0;
+    color: #000;
+  }
+  .unitep-body {
+    font-size: 10pt;
+    line-height: 1.45;
+    text-align: justify;
+  }
+  .unitep-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10pt;
+  }
+  .unitep-table th, .unitep-table td {
+    border: 1px solid #000;
+    padding: 4px 6px;
+    vertical-align: top;
+  }
+  .unitep-table th {
+    background: #003366;
+    color: white;
+    font-weight: 700;
+    text-align: left;
+  }
+
+  @media print {
+    body * { visibility: hidden; }
+    .unitep-print-area, .unitep-print-area * { visibility: visible; }
+    .unitep-print-area { position: absolute; left: 0; top: 0; }
+    .unitep-page { box-shadow: none; margin: 0; }
+    @page { size: A4; margin: 0; }
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+}
+
+/* ─── Rich text editor : placeholder visible quand le contenu est vide ─── */
+.rich-text-editor:empty::before {
+  content: attr(data-placeholder);
+  color: #9AA5B5;
+  pointer-events: none;
+  font-style: italic;
+}
+/* Quand le navigateur insère un <br> orphelin pour caret. */
+.rich-text-editor:has(> br:only-child)::before {
+  content: attr(data-placeholder);
+  color: #9AA5B5;
+  pointer-events: none;
+  font-style: italic;
+  position: absolute;
+}
+.rich-text-editor {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
