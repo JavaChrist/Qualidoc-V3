@@ -47,6 +47,10 @@ export default function NewDocument() {
   const notify = useUiStore((s) => s.notify);
   const aiAvailable = useAiStore((s) => s.available);
   const aiConfigured = useAiStore((s) => s.configured);
+  const aiRuntime = useAiStore((s) => s.runtime);
+  // Le scraping constructeur (Puppeteer + Chromium headless) n'est dispo
+  // que dans l'app desktop ; en mode web (Vercel), on masque le bouton.
+  const canScrape = aiAvailable && aiRuntime === 'electron';
 
   const [step, setStep] = useState(1);
   const [scraperOpen, setScraperOpen] = useState(false);
@@ -264,7 +268,7 @@ export default function NewDocument() {
                   </div>
                 </Field>
 
-                {aiAvailable && (
+                {canScrape && (
                   <div className="flex items-center gap-2 pt-2 border-t border-unitep-border">
                     <button
                       type="button"

@@ -13,6 +13,9 @@ import { ai } from '../utils/ai.js';
  */
 export const useAiStore = create((set, get) => ({
   available: ai.isAvailable(),
+  // 'electron' | 'web' | 'none' — utile pour différencier dans l'UI les
+  // capacités du runtime (ex: scraping désactivé en mode web).
+  runtime: ai.runtime(),
   configured: null,
   models: null,
   loading: {
@@ -25,11 +28,16 @@ export const useAiStore = create((set, get) => ({
 
   async refreshStatus() {
     if (!ai.isAvailable()) {
-      set({ available: false, configured: false });
+      set({ available: false, runtime: 'none', configured: false });
       return;
     }
     const s = await ai.status();
-    set({ available: true, configured: !!s?.configured, models: s?.models || null });
+    set({
+      available: true,
+      runtime: s?.runtime || ai.runtime(),
+      configured: !!s?.configured,
+      models: s?.models || null,
+    });
   },
 
   async testConnection() {

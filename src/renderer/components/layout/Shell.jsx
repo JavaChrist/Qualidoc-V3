@@ -4,6 +4,7 @@ import { useSettingsStore } from '../../store/useSettingsStore.js';
 import { useDocumentsStore } from '../../store/useDocumentsStore.js';
 import Toast from './Toast.jsx';
 import ConfirmDialog from './ConfirmDialog.jsx';
+import InstallButton from './InstallButton.jsx';
 
 const navItems = [
   { to: '/dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
@@ -31,9 +32,12 @@ export default function Shell() {
           </div>
         </div>
         <div className="flex-1" />
-        <div className="flex items-center gap-2 text-xs text-slate-500">
-          <ShieldCheck className="w-4 h-4 text-unitep-navy" />
-          <span className="font-medium">{company?.name || 'EDF — UNITEP'}</span>
+        <div className="flex items-center gap-4 text-xs text-slate-500">
+          <InstallButton />
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-unitep-navy" />
+            <span className="font-medium">{company?.name || 'EDF — UNITEP'}</span>
+          </div>
         </div>
       </header>
 

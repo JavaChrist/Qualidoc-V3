@@ -1,0 +1,15 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "version": 2,
+  "buildCommand": "vite build",
+  "outputDirectory": "dist",
+  "framework": "vite",
+  "rewrites": [
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ],
+  "functions": {
+    "api/ai/generate-step-text.js": { "maxDuration": 60 },
+    "api/ai/test-connection.js": { "maxDuration": 20 },
+    "api/ai/reformulate.js": { "maxDuration": 30 }
+  }
+}

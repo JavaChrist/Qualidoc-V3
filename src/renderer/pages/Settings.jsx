@@ -417,6 +417,7 @@ function ExportTab({ settings, notify }) {
 /* ─── Onglet IA Mistral ─── */
 function AiTab({ notify }) {
   const available = useAiStore((s) => s.available);
+  const runtime = useAiStore((s) => s.runtime);
   const configured = useAiStore((s) => s.configured);
   const testing = useAiStore((s) => s.loading.testConnection);
   const refreshStatus = useAiStore((s) => s.refreshStatus);
@@ -452,8 +453,8 @@ function AiTab({ notify }) {
         <StatusCard
           label="Disponibilité"
           ok={available}
-          okText="Disponible (Electron)"
-          koText="Indisponible (mode web)"
+          okText={runtime === 'electron' ? 'Disponible (app desktop)' : 'Disponible (API web)'}
+          koText="Indisponible — preload ou API /api/ai/* introuvable"
         />
         <StatusCard
           label="Clé API"

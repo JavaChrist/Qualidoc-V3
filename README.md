@@ -126,6 +126,32 @@ npm run build
 
 Génère le binaire dans `release/` (NSIS pour Windows).
 
+### Déploiement web (Vercel)
+
+Qualidoc V3 peut aussi être déployé comme application web Vite sur Vercel
+pour partager l'outil avec l'équipe via une URL. L'IA Mistral reste
+disponible grâce à des **fonctions serverless** (`api/ai/*`) qui détiennent
+la clé API en variable d'environnement (jamais exposée au browser).
+
+**Configuration :**
+
+1. Importer le repo dans Vercel (framework auto-détecté : Vite).
+2. Dans **Project → Settings → Environment Variables**, créer :
+   - Nom : `MISTRAL_API_KEY`
+   - Valeur : votre clé Mistral
+   - Environnements : `Production`, `Preview`, `Development`
+3. Redéployer.
+
+Côté UI, le runtime est automatiquement détecté :
+- App desktop installée → appels via IPC Electron (clé figée dans le binaire).
+- URL Vercel → appels HTTP vers `/api/ai/*` (clé côté serveur).
+
+**Limites en mode web :** le scraping constructeur (Puppeteer + Chromium
+headless) reste uniquement disponible dans l'app desktop. Le bouton
+« Récupérer les infos en ligne » est masqué sur la version web. La
+génération de texte par IA, la reformulation et le test de connexion
+fonctionnent dans les deux runtimes.
+
 ---
 
 ## Structure du projet
