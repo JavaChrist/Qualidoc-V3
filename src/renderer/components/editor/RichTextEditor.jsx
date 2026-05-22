@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useLayoutEffect, useState, useCallback } from 'react';
 import { Bold, Italic, Underline, Strikethrough, Palette, Eraser, Type } from 'lucide-react';
 import { sanitizeHtml } from '../../utils/richText.js';
 
@@ -42,23 +42,40 @@ export default function RichTextEditor({
   className = '',
 }) {
   const ref = useRef(null);
+  // On mémorise la dernière chaîne sanitizée envoyée vers `onChange` pour :
+  //  1. Détecter quand une nouvelle `value` arrive de l'EXTÉRIEUR (ex: IA
+  //     qui pousse une description) et toujours la réinjecter dans le DOM,
+  //     même si l'innerHTML courant "ressemble" déjà à value sanitizée.
+  //  2. Éviter d'émettre un onChange identique au prop reçu (évite les
+  //     boucles et les onBlur fantômes qui écrasent un contenu qui vient
+  //     d'arriver par un autre canal).
+  const lastEmittedRef = useRef('');
   const [paletteOpen, setPaletteOpen] = useState(false);
 
-  // Initialisation et resynchronisation externe :
-  //   on ne ré-injecte le HTML que si la valeur extérieure diffère vraiment
-  //   de l'innerHTML actuel pour ne pas casser la position du curseur en
-  //   cours de saisie.
-  useEffect(() => {
+  // Sync prop → DOM. useLayoutEffect (et non useEffect) pour s'exécuter
+  // AVANT la peinture, donc avant tout onBlur ou autre interaction qui
+  // pourrait s'enclencher pendant la frame.
+  useLayoutEffect(() => {
     if (!ref.current) return;
     const safe = sanitizeHtml(value || '');
+    // Si la valeur entrante correspond exactement à la dernière chaîne
+    // qu'on a émise, le DOM est déjà à jour : on ne touche à rien, sinon
+    // on perdrait la position du curseur pendant la saisie.
+    if (safe === lastEmittedRef.current) return;
+    // Sinon (update externe, ex: IA), on force la mise à jour du DOM.
     if (ref.current.innerHTML !== safe) {
       ref.current.innerHTML = safe;
     }
+    lastEmittedRef.current = safe;
   }, [value]);
 
   const emit = useCallback(() => {
     if (!ref.current) return;
     const html = sanitizeHtml(ref.current.innerHTML);
+    // Pas d'émission si rien n'a réellement changé — empêche les onBlur
+    // d'écraser un contenu fraîchement injecté par un canal externe (IA).
+    if (html === lastEmittedRef.current) return;
+    lastEmittedRef.current = html;
     onChange?.(html);
   }, [onChange]);
 

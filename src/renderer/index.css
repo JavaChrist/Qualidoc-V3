@@ -134,23 +134,20 @@
 }
 
 /* ─── Rich text editor : placeholder visible quand le contenu est vide ─── */
+.rich-text-editor {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+/* Placeholder visible uniquement quand la zone est strictement vide.
+   Volontairement pas de :has(> br) ni position:absolute pour éviter de
+   superposer le placeholder à un contenu valide injecté de l'extérieur
+   (ex: une description écrite par l'IA). */
 .rich-text-editor:empty::before {
   content: attr(data-placeholder);
   color: #9AA5B5;
   pointer-events: none;
   font-style: italic;
-}
-/* Quand le navigateur insère un <br> orphelin pour caret. */
-.rich-text-editor:has(> br:only-child)::before {
-  content: attr(data-placeholder);
-  color: #9AA5B5;
-  pointer-events: none;
-  font-style: italic;
-  position: absolute;
-}
-.rich-text-editor {
   white-space: pre-wrap;
-  word-break: break-word;
 }
 
 @keyframes slideIn {
