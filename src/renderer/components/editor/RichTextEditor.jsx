@@ -1,4 +1,5 @@
-import { useRef, useLayoutEffect, useState, useCallback } from 'react';
+import { useRef, useLayoutEffect, useState, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Bold, Italic, Underline, Strikethrough, Palette, Eraser, Type } from 'lucide-react';
 import { sanitizeHtml } from '../../utils/richText.js';
 
@@ -23,14 +24,40 @@ import { sanitizeHtml } from '../../utils/richText.js';
 // Tailles proposées dans le dropdown (en pt). 10pt = taille texte UNITEP de base.
 const SIZES = [8, 9, 10, 11, 12, 14, 16];
 
-// Palette UNITEP/EDF (couleurs réutilisées pour cohérence avec le gabarit).
+// Palette étendue UNITEP/EDF, organisée en grille 6×4. La première ligne
+// regroupe les neutres (noir → blanc) ; les lignes suivantes regroupent
+// les familles chaudes, froides puis accents. Les couleurs "stratégiques"
+// du gabarit (orange EDF, bleu marine EDF, rouge signature, gris foncé)
+// figurent à leur place dans leur famille pour rester facilement repérables.
 const COLORS = [
-  { value: '#000000', label: 'Noir (par défaut)' },
+  // Ligne 1 — neutres
+  { value: '#000000', label: 'Noir' },
+  { value: '#404040', label: 'Gris très foncé' },
+  { value: '#595959', label: 'Gris foncé (gabarit)' },
+  { value: '#808080', label: 'Gris moyen' },
+  { value: '#BFBFBF', label: 'Gris clair' },
+  { value: '#F2F2F2', label: 'Gris très clair' },
+  // Ligne 2 — chauds (rouges/oranges/jaunes)
+  { value: '#7F0000', label: 'Bordeaux' },
   { value: '#C00000', label: 'Rouge — signature / avertissement' },
+  { value: '#E74C3C', label: 'Rouge vif' },
   { value: '#FF6F00', label: 'Orange EDF — important' },
-  { value: '#003366', label: 'Bleu marine EDF' },
-  { value: '#595959', label: 'Gris foncé' },
+  { value: '#F39C12', label: 'Orange clair' },
+  { value: '#F1C40F', label: 'Jaune' },
+  // Ligne 3 — froids (verts/bleus)
+  { value: '#1E5631', label: 'Vert foncé' },
   { value: '#008000', label: 'Vert — succès / validé' },
+  { value: '#27AE60', label: 'Vert clair' },
+  { value: '#003366', label: 'Bleu marine EDF' },
+  { value: '#2E86C1', label: 'Bleu' },
+  { value: '#5DADE2', label: 'Bleu clair' },
+  // Ligne 4 — accents (violets/roses/marron)
+  { value: '#4A235A', label: 'Violet foncé' },
+  { value: '#8E44AD', label: 'Violet' },
+  { value: '#E91E63', label: 'Rose' },
+  { value: '#6E2C00', label: 'Marron' },
+  { value: '#A0522D', label: 'Brun rougeâtre' },
+  { value: '#D7BDE2', label: 'Lavande' },
 ];
 
 export default function RichTextEditor({
@@ -82,6 +109,11 @@ export default function RichTextEditor({
   const exec = useCallback((cmd, val = null) => {
     if (disabled) return;
     ref.current?.focus();
+    // Force le navigateur à émettre du CSS (<span style="color:..."> /
+    // <span style="font-weight:bold">) plutôt que les balises legacy
+    // <font> / <b> imbriquées. Notre sanitizer accepte les deux mais le
+    // mode CSS est plus stable lors des éditions répétées.
+    try { document.execCommand('styleWithCSS', false, true); } catch { /* legacy browser */ }
     document.execCommand(cmd, false, val);
     emit();
   }, [disabled, emit]);
@@ -132,6 +164,7 @@ export default function RichTextEditor({
         onSize={applySize}
         onColorOpen={() => setPaletteOpen((v) => !v)}
         paletteOpen={paletteOpen}
+        onColorClose={() => setPaletteOpen(false)}
         onColorPick={applyColor}
         onClear={() => exec('removeFormat')}
       />
@@ -150,7 +183,8 @@ export default function RichTextEditor({
   );
 }
 
-function Toolbar({ disabled, onExec, onSize, onColorOpen, paletteOpen, onColorPick, onClear }) {
+function Toolbar({ disabled, onExec, onSize, onColorOpen, paletteOpen, onColorClose, onColorPick, onClear }) {
+  const colorBtnRef = useRef(null);
   return (
     <div className="flex items-center gap-0.5 px-2 py-1 bg-slate-50/60 border-b border-unitep-border flex-wrap">
       <TbBtn icon={Bold} title="Gras (Ctrl+B)" onClick={() => onExec('bold')} disabled={disabled} />
@@ -164,23 +198,47 @@ function Toolbar({ disabled, onExec, onSize, onColorOpen, paletteOpen, onColorPi
 
       <TbSeparator />
 
-      <div className="relative">
-        <TbBtn icon={Palette} title="Couleur du texte" onClick={onColorOpen} disabled={disabled} active={paletteOpen} />
-        {paletteOpen && (
-          <div className="absolute left-0 top-full mt-1 z-50 bg-white border border-unitep-border rounded shadow-unitep-lg p-1 flex gap-1">
+      <button
+        type="button"
+        ref={colorBtnRef}
+        onClick={onColorOpen}
+        disabled={disabled}
+        title="Couleur du texte"
+        className={`p-1.5 rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${paletteOpen ? 'bg-slate-200 text-unitep-navy' : 'hover:bg-slate-200 text-slate-600'}`}
+      >
+        <Palette className="w-3.5 h-3.5" />
+      </button>
+      <PortalPopover anchorRef={colorBtnRef} open={paletteOpen} onClose={onColorClose}>
+        <div className="bg-white border border-unitep-border rounded-md shadow-unitep-lg p-2 w-[180px]">
+          <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1.5 px-0.5">
+            Palette
+          </div>
+          <div className="grid grid-cols-6 gap-1">
             {COLORS.map((c) => (
               <button
                 key={c.value}
                 type="button"
                 onClick={() => onColorPick(c.value)}
                 title={c.label}
-                className="w-5 h-5 rounded-sm border border-slate-300 hover:scale-110 transition-transform"
+                className="w-6 h-6 rounded-sm border border-slate-300 hover:scale-110 hover:shadow-sm transition-transform"
                 style={{ background: c.value }}
               />
             ))}
           </div>
-        )}
-      </div>
+          <div className="mt-2 pt-2 border-t border-slate-200">
+            <label className="flex items-center gap-2 text-[11px] text-slate-600 cursor-pointer hover:text-unitep-navy">
+              <input
+                type="color"
+                defaultValue="#000000"
+                onChange={(e) => onColorPick(e.target.value.toUpperCase())}
+                className="w-6 h-6 rounded cursor-pointer border border-slate-300 p-0"
+                title="Choisir une couleur personnalisée"
+              />
+              <span>Couleur personnalisée…</span>
+            </label>
+          </div>
+        </div>
+      </PortalPopover>
 
       <TbSeparator />
 
@@ -191,10 +249,12 @@ function Toolbar({ disabled, onExec, onSize, onColorOpen, paletteOpen, onColorPi
 
 function SizeMenu({ disabled, onPick }) {
   const [open, setOpen] = useState(false);
+  const btnRef = useRef(null);
   return (
-    <div className="relative">
+    <>
       <button
         type="button"
+        ref={btnRef}
         disabled={disabled}
         onClick={() => setOpen((v) => !v)}
         className={`px-2 py-1 rounded text-xs font-medium flex items-center gap-1 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed ${open ? 'bg-slate-200' : ''}`}
@@ -203,8 +263,8 @@ function SizeMenu({ disabled, onPick }) {
         <Type className="w-3.5 h-3.5" />
         <span>Taille</span>
       </button>
-      {open && (
-        <div className="absolute left-0 top-full mt-1 z-50 bg-white border border-unitep-border rounded shadow-unitep-lg py-1 min-w-[100px]">
+      <PortalPopover anchorRef={btnRef} open={open} onClose={() => setOpen(false)}>
+        <div className="bg-white border border-unitep-border rounded shadow-unitep-lg py-1 min-w-[110px]">
           {SIZES.map((s) => (
             <button
               key={s}
@@ -217,8 +277,73 @@ function SizeMenu({ disabled, onPick }) {
             </button>
           ))}
         </div>
-      )}
-    </div>
+      </PortalPopover>
+    </>
+  );
+}
+
+/**
+ * Popover rendu dans `document.body` via React Portal, positionné juste
+ * sous l'élément d'ancrage. Indispensable ici parce que le wrapper du
+ * RichTextEditor a `overflow-hidden` (pour le rendu des coins arrondis),
+ * ce qui clippait l'ancien popover positionné en `absolute` à l'intérieur.
+ *
+ * Bonus : se ferme automatiquement au clic en dehors, à la touche Échap
+ * et au scroll de la fenêtre — comportement attendu d'un dropdown.
+ */
+function PortalPopover({ anchorRef, open, onClose, children }) {
+  const [pos, setPos] = useState(null);
+  const popoverRef = useRef(null);
+
+  useLayoutEffect(() => {
+    if (!open || !anchorRef.current) return undefined;
+    const update = () => {
+      const r = anchorRef.current.getBoundingClientRect();
+      // On laisse 4px d'air entre le bouton et le popover. La position est
+      // fixe (viewport), donc pas besoin d'ajouter scrollY/scrollX.
+      setPos({ top: r.bottom + 4, left: r.left });
+    };
+    update();
+    window.addEventListener('resize', update);
+    window.addEventListener('scroll', update, true);
+    return () => {
+      window.removeEventListener('resize', update);
+      window.removeEventListener('scroll', update, true);
+    };
+  }, [open, anchorRef]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const onMouseDown = (e) => {
+      if (popoverRef.current?.contains(e.target)) return;
+      if (anchorRef.current?.contains(e.target)) return;
+      onClose?.();
+    };
+    const onKey = (e) => {
+      if (e.key === 'Escape') onClose?.();
+    };
+    // setTimeout pour ne pas attraper le clic d'ouverture qui vient de se
+    // produire dans la même frame.
+    const t = setTimeout(() => {
+      document.addEventListener('mousedown', onMouseDown);
+      document.addEventListener('keydown', onKey);
+    }, 0);
+    return () => {
+      clearTimeout(t);
+      document.removeEventListener('mousedown', onMouseDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open, anchorRef, onClose]);
+
+  if (!open || !pos || typeof document === 'undefined') return null;
+  return createPortal(
+    <div
+      ref={popoverRef}
+      style={{ position: 'fixed', top: pos.top, left: pos.left, zIndex: 200 }}
+    >
+      {children}
+    </div>,
+    document.body,
   );
 }
 
