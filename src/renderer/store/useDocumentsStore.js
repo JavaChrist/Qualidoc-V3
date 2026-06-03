@@ -321,6 +321,19 @@ export const useDocumentsStore = create((set, get) => ({
     await get().update(id, { status: 'approved' });
   },
 
+  /**
+   * Met à jour un indice de révision existant (rédacteur / vérificateur /
+   * approbateur, date, nature…). `indexPos` est la position de l'indice dans
+   * le tableau `doc.indices`. Permet de (ré)affecter des signataires à un
+   * document déjà créé, à partir de la liste vivante des utilisateurs.
+   */
+  updateIndex: async (id, indexPos, patch) => {
+    const doc = get().getById(id);
+    if (!doc || !Array.isArray(doc.indices)) return;
+    const indices = doc.indices.map((ind, i) => (i === indexPos ? { ...ind, ...patch } : ind));
+    await get().update(id, { indices });
+  },
+
   newRevision: async (id, evolution, writer = '', verifier = '', approver = '') => {
     const doc = get().getById(id);
     if (!doc) return;

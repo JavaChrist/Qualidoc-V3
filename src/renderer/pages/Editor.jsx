@@ -7,6 +7,7 @@ import {
   Type,
 } from 'lucide-react';
 import { useDocumentsStore } from '../store/useDocumentsStore.js';
+import { useSettingsStore } from '../store/useSettingsStore.js';
 import { useUiStore } from '../store/useUiStore.js';
 import DocumentTree from '../components/editor/DocumentTree.jsx';
 import StepEditor from '../components/editor/StepEditor.jsx';
@@ -36,6 +37,7 @@ export default function Editor() {
   const removeBlock = useDocumentsStore((s) => s.removeBlock);
   const moveBlock = useDocumentsStore((s) => s.moveBlock);
   const newRevision = useDocumentsStore((s) => s.newRevision);
+  const updateIndex = useDocumentsStore((s) => s.updateIndex);
   const validate = useDocumentsStore((s) => s.validate);
   const notify = useUiStore((s) => s.notify);
   const confirmDialog = useUiStore((s) => s.confirm);
@@ -378,6 +380,7 @@ export default function Editor() {
               onUpdate={(p) => update(doc.id, p)}
               onValidate={handleValidate}
               onNewRevision={handleNewRevision}
+              onUpdateIndex={(pos, patch) => updateIndex(doc.id, pos, patch)}
             />
           </aside>
         )}
@@ -660,7 +663,8 @@ function ContentTypeSelector({ value, onChange }) {
   );
 }
 
-function RightPanel({ doc, stats, lastSaved, readOnly, selectedStep, onUpdate, onValidate, onNewRevision }) {
+function RightPanel({ doc, stats, lastSaved, readOnly, selectedStep, onUpdate, onValidate, onNewRevision, onUpdateIndex }) {
+  const users = useSettingsStore((s) => s.users);
   const [tab, setTab] = useState('meta');
   return (
     <div className="flex flex-col h-full">
@@ -745,11 +749,28 @@ function RightPanel({ doc, stats, lastSaved, readOnly, selectedStep, onUpdate, o
                   <span className="text-xs text-slate-500">{ind.date}</span>
                 </div>
                 <div className="text-xs text-slate-700 mb-1">{ind.nature}</div>
-                <div className="text-[11px] text-slate-500 grid grid-cols-3 gap-1 mt-2">
-                  <div><div className="text-[9px] uppercase opacity-70">Réd.</div>{ind.writer || '—'}</div>
-                  <div><div className="text-[9px] uppercase opacity-70">Vér.</div>{ind.verifier || '—'}</div>
-                  <div><div className="text-[9px] uppercase opacity-70">Appr.</div>{ind.approver || '—'}</div>
-                </div>
+                {readOnly ? (
+                  <div className="text-[11px] text-slate-500 grid grid-cols-3 gap-1 mt-2">
+                    <div><div className="text-[9px] uppercase opacity-70">Réd.</div>{ind.writer || '—'}</div>
+                    <div><div className="text-[9px] uppercase opacity-70">Vér.</div>{ind.verifier || '—'}</div>
+                    <div><div className="text-[9px] uppercase opacity-70">Appr.</div>{ind.approver || '—'}</div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-1 mt-2">
+                    <SignataireSelect
+                      label="Réd." role="Rédacteur" users={users} value={ind.writer}
+                      onChange={(v) => onUpdateIndex(i, { writer: v })}
+                    />
+                    <SignataireSelect
+                      label="Vér." role="Vérificateur" users={users} value={ind.verifier}
+                      onChange={(v) => onUpdateIndex(i, { verifier: v })}
+                    />
+                    <SignataireSelect
+                      label="Appr." role="Approbateur" users={users} value={ind.approver}
+                      onChange={(v) => onUpdateIndex(i, { approver: v })}
+                    />
+                  </div>
+                )}
               </div>
             ))}
             {!readOnly && (
@@ -761,6 +782,36 @@ function RightPanel({ doc, stats, lastSaved, readOnly, selectedStep, onUpdate, o
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * Sélecteur de signataire (rédacteur / vérificateur / approbateur) alimenté par
+ * la liste vivante des utilisateurs (Paramètres > Utilisateurs), filtrée par
+ * rôle. La valeur courante stockée sur l'indice est toujours conservée comme
+ * option même si l'utilisateur a été retiré ou ne correspond plus à un compte
+ * existant, afin de ne pas casser les affectations des documents déjà créés.
+ */
+function SignataireSelect({ label, role, users, value, onChange }) {
+  const options = (users || []).filter((u) => u.role === role);
+  const currentMatches = options.some((u) => `${u.firstName}${u.lastName}` === value);
+  return (
+    <label className="block">
+      <div className="text-[9px] uppercase opacity-70 text-slate-500">{label}</div>
+      <select
+        className="input text-[11px] py-1 px-1 w-full"
+        value={value || ''}
+        onChange={(e) => onChange(e.target.value)}
+      >
+        <option value="">— Aucun —</option>
+        {value && !currentMatches && <option value={value}>{value}</option>}
+        {options.map((u) => (
+          <option key={u.id} value={`${u.firstName}${u.lastName}`}>
+            {u.firstName} {u.lastName} — {u.entity}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 

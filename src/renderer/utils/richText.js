@@ -73,8 +73,33 @@ function normalizeColor(value) {
 }
 
 /**
- * Nettoie l'attribut `style` pour ne garder que `color` (en #RRGGBB) et
- * `font-size` (en pt). Tout autre style est supprimé.
+ * Vrai si une valeur de `font-weight` correspond à du gras. Accepte les
+ * mots-clés (`bold`, `bolder`) ET les valeurs numériques (≥ 600) car
+ * `document.execCommand('bold')` en mode CSS et de nombreuses sources
+ * collées sérialisent le gras de façons différentes.
+ */
+function isBoldWeight(val) {
+  const v = (val || '').trim().toLowerCase();
+  if (v === 'bold' || v === 'bolder') return true;
+  return /^\d{3,4}$/.test(v) && Number(v) >= 600;
+}
+
+/**
+ * Nettoie l'attribut `style` pour ne garder que les déclarations utiles à
+ * notre mise en forme et exportables en DOCX :
+ *  - `color`          (normalisé en #RRGGBB)
+ *  - `font-size`      (en pt)
+ *  - `font-weight`    (gras → `font-weight: bold`)
+ *  - `font-style`     (italique → `font-style: italic`)
+ *  - `text-decoration`(souligné / barré)
+ *
+ * C'est indispensable parce que la toolbar de l'éditeur force le mode CSS
+ * (`document.execCommand('styleWithCSS', ...)`), donc gras/italique/souligné
+ * arrivent ici sous forme de `<span style="font-weight: bold">` etc. Sans
+ * ces propriétés dans la whitelist, le style était supprimé puis le span
+ * vidé était aplati → la mise en forme appliquée via la toolbar était perdue
+ * à chaque sauvegarde/preview (alors que le collage avec balises <b>/<i>
+ * survivait). Tout autre style est supprimé.
  */
 function sanitizeStyle(style) {
   if (!style) return '';
@@ -90,6 +115,17 @@ function sanitizeStyle(style) {
       if (hex) kept.push(`color: ${hex}`);
     } else if (prop === 'font-size' && SIZE_RE.test(val)) {
       kept.push(`font-size: ${val}`);
+    } else if (prop === 'font-weight') {
+      if (isBoldWeight(val)) kept.push('font-weight: bold');
+    } else if (prop === 'font-style') {
+      const v = val.toLowerCase();
+      if (v === 'italic' || v === 'oblique') kept.push('font-style: italic');
+    } else if (prop === 'text-decoration' || prop === 'text-decoration-line') {
+      const v = val.toLowerCase();
+      const parts = [];
+      if (v.includes('underline')) parts.push('underline');
+      if (v.includes('line-through')) parts.push('line-through');
+      if (parts.length) kept.push(`text-decoration: ${parts.join(' ')}`);
     }
   }
   return kept.join('; ');
@@ -241,7 +277,10 @@ export function richTextToParagraphs(content) {
     if (tag === 'SPAN' && node.getAttribute('style')) {
       const decls = node.getAttribute('style').split(';');
       for (const d of decls) {
-        const [k, v] = d.split(':').map((x) => (x || '').trim());
+        const idx = d.indexOf(':');
+        if (idx < 0) continue;
+        const k = d.slice(0, idx).trim().toLowerCase();
+        const v = d.slice(idx + 1).trim();
         if (k === 'color') {
           const hex = normalizeColor(v);
           // docx attend la couleur sans le `#`.
@@ -249,6 +288,16 @@ export function richTextToParagraphs(content) {
         } else if (k === 'font-size') {
           const m = v.match(SIZE_RE);
           if (m) s.size = parseInt(m[1], 10); // en pt, on convertira en half-pt
+        } else if (k === 'font-weight') {
+          // Gras appliqué via la toolbar (mode CSS) : <span style="font-weight: bold">.
+          if (isBoldWeight(v)) s.bold = true;
+        } else if (k === 'font-style') {
+          const vv = v.toLowerCase();
+          if (vv === 'italic' || vv === 'oblique') s.italics = true;
+        } else if (k === 'text-decoration' || k === 'text-decoration-line') {
+          const vv = v.toLowerCase();
+          if (vv.includes('underline')) s.underline = true;
+          if (vv.includes('line-through')) s.strike = true;
         }
       }
     }
