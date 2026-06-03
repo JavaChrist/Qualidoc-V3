@@ -174,7 +174,7 @@ function UsersTab({ settings, notify }) {
   const [form, setForm] = useState(null);
 
   const startNew = () => {
-    const n = { firstName: '', lastName: '', role: 'Rédacteur', entity: '', signature: null };
+    const n = { firstName: '', lastName: '', entity: '', signature: null };
     setForm(n);
     setEditing('new');
   };
@@ -206,7 +206,7 @@ function UsersTab({ settings, notify }) {
     const ok = await confirmDialog({
       title: 'Supprimer cet utilisateur ?',
       message: user
-        ? `${user.firstName} ${user.lastName} (${user.role}) sera retiré de la liste. Cette opération n'affecte pas les documents existants.`
+        ? `${user.firstName} ${user.lastName} sera retiré de la liste. Cette opération n'affecte pas les documents existants.`
         : 'Cette opération est irréversible.',
       confirmLabel: 'Supprimer',
       danger: true,
@@ -219,7 +219,7 @@ function UsersTab({ settings, notify }) {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <p className="text-sm text-slate-500">Rédacteurs, vérificateurs et approbateurs apparaissant dans les indices de révision.</p>
+        <p className="text-sm text-slate-500">Personnes pouvant figurer dans les indices de révision. Aucun rôle figé : chaque utilisateur peut être choisi comme rédacteur, vérificateur ou approbateur sur chaque document.</p>
         <button onClick={startNew} className="btn-primary text-xs">
           <Plus className="w-3.5 h-3.5" /> Ajouter
         </button>
@@ -230,7 +230,6 @@ function UsersTab({ settings, notify }) {
           <thead className="bg-slate-50 text-xs uppercase font-bold text-slate-600">
             <tr>
               <th className="px-3 py-2 text-left">Prénom Nom</th>
-              <th className="px-3 py-2 text-left">Rôle</th>
               <th className="px-3 py-2 text-left">Entité</th>
               <th className="px-3 py-2 text-right w-24">Actions</th>
             </tr>
@@ -239,7 +238,6 @@ function UsersTab({ settings, notify }) {
             {settings.users.map((u) => (
               <tr key={u.id} className="border-t border-unitep-border hover:bg-slate-50">
                 <td className="px-3 py-2 font-medium">{u.firstName} {u.lastName}</td>
-                <td className="px-3 py-2"><span className="badge bg-unitep-navy/10 text-unitep-navy">{u.role}</span></td>
                 <td className="px-3 py-2 text-slate-600">{u.entity}</td>
                 <td className="px-3 py-2 text-right">
                   <button onClick={() => startEdit(u)} className="text-xs text-unitep-navy hover:underline mr-2">Modifier</button>
@@ -248,7 +246,7 @@ function UsersTab({ settings, notify }) {
               </tr>
             ))}
             {settings.users.length === 0 && (
-              <tr><td colSpan="4" className="px-3 py-6 text-center text-slate-400 text-sm">Aucun utilisateur</td></tr>
+              <tr><td colSpan="3" className="px-3 py-6 text-center text-slate-400 text-sm">Aucun utilisateur</td></tr>
             )}
           </tbody>
         </table>
@@ -260,11 +258,6 @@ function UsersTab({ settings, notify }) {
           <div className="grid grid-cols-2 gap-3">
             <Field label="Prénom"><input className="input" value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} /></Field>
             <Field label="Nom"><input className="input" value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} /></Field>
-            <Field label="Fonction">
-              <select className="input" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
-                {['Rédacteur', 'Vérificateur', 'Approbateur'].map((r) => <option key={r}>{r}</option>)}
-              </select>
-            </Field>
             <Field label="Entité"><input className="input" value={form.entity} onChange={(e) => setForm({ ...form, entity: e.target.value })} /></Field>
           </div>
           <div className="flex justify-end gap-2 mt-3">

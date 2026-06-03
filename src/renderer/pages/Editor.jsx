@@ -758,15 +758,15 @@ function RightPanel({ doc, stats, lastSaved, readOnly, selectedStep, onUpdate, o
                 ) : (
                   <div className="grid grid-cols-3 gap-1 mt-2">
                     <SignataireSelect
-                      label="Réd." role="Rédacteur" users={users} value={ind.writer}
+                      label="Réd." users={users} value={ind.writer}
                       onChange={(v) => onUpdateIndex(i, { writer: v })}
                     />
                     <SignataireSelect
-                      label="Vér." role="Vérificateur" users={users} value={ind.verifier}
+                      label="Vér." users={users} value={ind.verifier}
                       onChange={(v) => onUpdateIndex(i, { verifier: v })}
                     />
                     <SignataireSelect
-                      label="Appr." role="Approbateur" users={users} value={ind.approver}
+                      label="Appr." users={users} value={ind.approver}
                       onChange={(v) => onUpdateIndex(i, { approver: v })}
                     />
                   </div>
@@ -787,13 +787,15 @@ function RightPanel({ doc, stats, lastSaved, readOnly, selectedStep, onUpdate, o
 
 /**
  * Sélecteur de signataire (rédacteur / vérificateur / approbateur) alimenté par
- * la liste vivante des utilisateurs (Paramètres > Utilisateurs), filtrée par
- * rôle. La valeur courante stockée sur l'indice est toujours conservée comme
- * option même si l'utilisateur a été retiré ou ne correspond plus à un compte
- * existant, afin de ne pas casser les affectations des documents déjà créés.
+ * la liste vivante des utilisateurs (Paramètres > Utilisateurs). Aucun filtrage
+ * par rôle : n'importe quel utilisateur peut être choisi dans n'importe lequel
+ * des trois champs et changé à volonté. La valeur courante stockée sur l'indice
+ * est toujours conservée comme option même si l'utilisateur a été retiré ou ne
+ * correspond plus à un compte existant, afin de ne pas casser les affectations
+ * des documents déjà créés.
  */
-function SignataireSelect({ label, role, users, value, onChange }) {
-  const options = (users || []).filter((u) => u.role === role);
+function SignataireSelect({ label, users, value, onChange }) {
+  const options = users || [];
   const currentMatches = options.some((u) => `${u.firstName}${u.lastName}` === value);
   return (
     <label className="block">
@@ -807,7 +809,7 @@ function SignataireSelect({ label, role, users, value, onChange }) {
         {value && !currentMatches && <option value={value}>{value}</option>}
         {options.map((u) => (
           <option key={u.id} value={`${u.firstName}${u.lastName}`}>
-            {u.firstName} {u.lastName} — {u.entity}
+            {u.firstName} {u.lastName}{u.entity ? ` — ${u.entity}` : ''}
           </option>
         ))}
       </select>

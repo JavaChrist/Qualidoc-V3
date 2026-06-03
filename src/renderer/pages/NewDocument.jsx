@@ -346,8 +346,8 @@ export default function NewDocument() {
                 <Field label="Rédacteur">
                   <select className="input" value={data.writer} onChange={(e) => update({ writer: e.target.value })}>
                     <option value="">— Aucun —</option>
-                    {users.filter((u) => u.role === 'Rédacteur').map((u) => (
-                      <option key={u.id} value={`${u.firstName}${u.lastName}`}>{u.firstName} {u.lastName} — {u.entity}</option>
+                    {users.map((u) => (
+                      <option key={u.id} value={`${u.firstName}${u.lastName}`}>{u.firstName} {u.lastName}{u.entity ? ` — ${u.entity}` : ''}</option>
                     ))}
                   </select>
                 </Field>
